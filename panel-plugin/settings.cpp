@@ -17,6 +17,7 @@
 
 #include "settings.h"
 
+#include "plugin.h"
 #include "command.h"
 #include "search-action.h"
 
@@ -80,8 +81,9 @@ static void write_vector_entry(XfceRc* rc, const char* key, const std::vector<st
 
 //-----------------------------------------------------------------------------
 
-Settings::Settings() :
+Settings::Settings(Plugin* plugin) :
 	m_modified(false),
+	m_plugin(plugin),
 
 	button_icon_name("xfce4-whiskermenu"),
 	button_title_visible(false),
@@ -121,11 +123,11 @@ Settings::Settings() :
 	command[CommandMenuEditor] = new Command("xfce4-menueditor", _("_Edit Applications"), "menulibre", _("Failed to launch menu editor."));
 	command[CommandProfile] = new Command("avatar-default", _("Edit _Profile"), "mugshot", _("Failed to edit profile."));
 
-	search_actions.push_back(new SearchAction(_("Man Pages"), "#", "exo-open --launch TerminalEmulator man %s", false, true));
-	search_actions.push_back(new SearchAction(_("Web Search"), "?", "exo-open --launch WebBrowser https://duckduckgo.com/?q=%u", false, true));
-	search_actions.push_back(new SearchAction(_("Wikipedia"), "!w", "exo-open --launch WebBrowser https://en.wikipedia.org/wiki/%u", false, true));
-	search_actions.push_back(new SearchAction(_("Run in Terminal"), "!", "exo-open --launch TerminalEmulator %s", false, true));
-	search_actions.push_back(new SearchAction(_("Open URI"), "^(file|http|https):\\/\\/(.*)$", "exo-open \\0", true, true));
+	search_actions.push_back(new SearchAction(m_plugin, _("Man Pages"), "#", "exo-open --launch TerminalEmulator man %s", false, true));
+	search_actions.push_back(new SearchAction(m_plugin, _("Web Search"), "?", "exo-open --launch WebBrowser https://duckduckgo.com/?q=%u", false, true));
+	search_actions.push_back(new SearchAction(m_plugin, _("Wikipedia"), "!w", "exo-open --launch WebBrowser https://en.wikipedia.org/wiki/%u", false, true));
+	search_actions.push_back(new SearchAction(m_plugin, _("Run in Terminal"), "!", "exo-open --launch TerminalEmulator %s", false, true));
+	search_actions.push_back(new SearchAction(m_plugin, _("Open URI"), "^(file|http|https):\\/\\/(.*)$", "exo-open \\0", true, true));
 }
 
 //-----------------------------------------------------------------------------
@@ -220,6 +222,7 @@ void Settings::load(char* file)
 			g_free(key);
 
 			search_actions.push_back(new SearchAction(
+			    m_plugin,
 					xfce_rc_read_entry(rc, "name", ""),
 					xfce_rc_read_entry(rc, "pattern", ""),
 					xfce_rc_read_entry(rc, "command", ""),

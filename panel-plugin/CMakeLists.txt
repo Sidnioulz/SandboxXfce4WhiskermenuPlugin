@@ -17,6 +17,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(exo REQUIRED exo-1)
 pkg_check_modules(garcon REQUIRED garcon-1)
 pkg_check_modules(libxfce4panel REQUIRED libxfce4panel-1.0>=4.7)
+pkg_check_modules(libwnck REQUIRED libwnck-1.0>=2.30)
 pkg_check_modules(libxfce4ui REQUIRED libxfce4ui-1>=4.7)
 pkg_check_modules(libxfce4util REQUIRED libxfce4util-1.0>=4.7)
 
@@ -24,6 +25,7 @@ include_directories(
 	${exo_INCLUDE_DIRS}
 	${garcon_INCLUDE_DIRS}
 	${libxfce4panel_INCLUDE_DIRS}
+	${libwnck_INCLUDE_DIRS}
 	${libxfce4ui_INCLUDE_DIRS}
 	${libxfce4util_INCLUDE_DIRS}
 	${GTK2_INCLUDE_DIRS})
@@ -32,6 +34,7 @@ link_directories(
 	${exo_LIBRARY_DIRS}
 	${garcon_LIBRARY_DIRS}
 	${libxfce4panel_LIBRARY_DIRS}
+	${libwnck_LIBRARY_DIRS}
 	${libxfce4ui_LIBRARY_DIRS}
 	${libxfce4util_LIBRARY_DIRS})
 
@@ -99,6 +102,7 @@ target_link_libraries(whiskermenu
 	${exo_LIBRARIES}
 	${garcon_LIBRARIES}
 	${libxfce4panel_LIBRARIES}
+	${libwnck_LIBRARIES}
 	${libxfce4ui_LIBRARIES}
 	${libxfce4util_LIBRARIES}
 	${GTK2_LIBRARIES})

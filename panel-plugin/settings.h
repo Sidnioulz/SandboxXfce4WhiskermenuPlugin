@@ -32,7 +32,7 @@ class SearchAction;
 
 class Settings
 {
-	Settings();
+	Settings(Plugin* plugin);
 	Settings(const Settings&);
 	Settings& operator=(const Settings&);
 	~Settings();
@@ -41,6 +41,7 @@ class Settings
 	void save(char* file);
 
 	bool m_modified;
+	Plugin* m_plugin;
 
 public:
 	bool get_modified() const

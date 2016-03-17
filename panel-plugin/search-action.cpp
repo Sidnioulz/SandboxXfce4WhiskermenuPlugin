@@ -18,15 +18,22 @@
 #include "search-action.h"
 
 #include "query.h"
+#include "launcher.h"
+#include "window.h"
+#include "applications-page.h"
 #include "settings.h"
 
+#include <garcon/garcon.h>
 #include <libxfce4ui/libxfce4ui.h>
+
+#include <stdlib.h>
 
 using namespace WhiskerMenu;
 
 //-----------------------------------------------------------------------------
 
-SearchAction::SearchAction() :
+SearchAction::SearchAction(Plugin* plugin) :
+  m_plugin(plugin),
 	m_is_regex(false),
 	m_show_description(true),
 	m_regex(NULL)
@@ -37,7 +44,8 @@ SearchAction::SearchAction() :
 
 //-----------------------------------------------------------------------------
 
-SearchAction::SearchAction(const gchar* name, const gchar* pattern, const gchar* command, bool is_regex, bool show_description) :
+SearchAction::SearchAction(Plugin* plugin, const gchar* name, const gchar* pattern, const gchar* command, bool is_regex, bool show_description) :
+  m_plugin(plugin),
 	m_name(name ? name : ""),
 	m_pattern(pattern ? pattern : ""),
 	m_command(command ? command : ""),
@@ -180,8 +188,66 @@ guint SearchAction::match_regex(const gchar* haystack)
 
 void SearchAction::run(GdkScreen* screen) const
 {
-	GError* error = NULL;
-	gboolean result = xfce_spawn_command_line_on_screen(screen, m_expanded_command.c_str(), FALSE, FALSE, &error);
+  gboolean          result   = FALSE;
+	GError*           error    = NULL;
+  std::string       app_name;
+  size_t            pos;
+  GarconMenuItem   *item     = NULL;
+  Window           *window   = NULL;
+  ApplicationsPage *apps     = NULL;
+  Launcher         *launcher = NULL;
+
+  // get the app's name
+	app_name = m_expanded_command;
+	pos = app_name.find_first_of(' ');
+	if (pos != std::string::npos && pos > 0)
+	  app_name.erase(pos);
+  app_name += ".desktop";
+
+  // find out if it ought to be sandboxed
+  if (!m_plugin)
+	{
+		xfce_dialog_show_error_manual(NULL, _("Missing plugin"), _("Failed to execute command \"%s\"."), m_expanded_command.c_str());
+		return;
+	}
+
+  window = m_plugin->get_window();
+  if (!window)
+	{
+		xfce_dialog_show_error_manual(NULL, _("Missing window"), _("Failed to execute command \"%s\"."), m_expanded_command.c_str());
+		return;
+	}
+
+  apps = window->get_applications();
+  if (!apps)
+	{
+		xfce_dialog_show_error_manual(NULL, _("Missing applications page"), _("Failed to execute command \"%s\"."), m_expanded_command.c_str());
+		return;
+	}
+
+  launcher = apps->get_application(app_name);
+
+  item = launcher? launcher->get_garcon_menu_item():NULL;
+  if (item && garcon_menu_item_get_sandboxed(item))
+  {
+    gchar *garcon_command = garcon_menu_item_expand_command(item,
+                                                            m_expanded_command.c_str(),
+                                                            xfce_workspace_is_active_secure(screen));
+
+	  result = xfce_spawn_command_line_on_screen(screen,
+	                                             garcon_command,
+                                               FALSE,
+                                               garcon_menu_item_supports_startup_notification(item),
+                                               &error);
+    g_free(garcon_command);
+  }
+  else
+  {
+	  result = xfce_spawn_command_line_on_screen(screen, m_expanded_command.c_str(), FALSE, FALSE, &error);
+  }
+
+  if (item)
+    g_object_unref(item);
 
 	if (G_UNLIKELY(!result))
 	{

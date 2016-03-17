@@ -28,12 +28,15 @@
 
 #include <gdk/gdkkeysyms.h>
 
+#include <garcon/garcon.h>
+
 using namespace WhiskerMenu;
 
 //-----------------------------------------------------------------------------
 
 SearchPage::SearchPage(Window* window) :
-	Page(window)
+	Page(window),
+	m_run_action(window)
 {
 	get_view()->set_selection_mode(GTK_SELECTION_BROWSE);
 

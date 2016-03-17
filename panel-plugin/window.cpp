@@ -33,6 +33,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <libxfce4ui/libxfce4ui.h>
 
+#include <stdlib.h> //FIXME
+
 #include <ctime>
 
 using namespace WhiskerMenu;
@@ -41,6 +43,7 @@ using namespace WhiskerMenu;
 
 WhiskerMenu::Window::Window() :
 	m_window(NULL),
+	m_active_workspace_changed_id(0),
 	m_layout_left(true),
 	m_layout_bottom(true),
 	m_layout_search_alternate(false),
@@ -167,6 +170,29 @@ WhiskerMenu::Window::Window() :
 	gtk_box_pack_start(m_title_box, GTK_WIDGET(m_commands_align), false, false, 0);
 	gtk_box_pack_start(m_title_box, GTK_WIDGET(m_resizer->get_widget()), false, false, 0);
 
+	// Add an infobar for sandboxed workspaces
+	m_infobar = GTK_INFO_BAR(gtk_info_bar_new ());
+  gtk_info_bar_set_message_type (m_infobar, GTK_MESSAGE_INFO);
+
+
+  GtkBox *hbox = GTK_BOX(gtk_hbox_new(false, 6));
+  GtkWidget *content_area = gtk_info_bar_get_content_area(m_infobar);
+  gtk_container_add(GTK_CONTAINER(content_area), GTK_WIDGET(hbox));
+
+  GtkWidget *image = gtk_image_new_from_icon_name("firejail-workspaces", GTK_ICON_SIZE_LARGE_TOOLBAR);
+  gtk_widget_set_size_request(image, 24, 24);
+  gtk_box_pack_start(hbox, image, FALSE, FALSE, 0);
+
+  m_infobar_message_label = GTK_LABEL(gtk_label_new (NULL));
+  gtk_label_set_markup (m_infobar_message_label, _("<b>This is a Secure Workspace</b>"));
+  gtk_box_pack_start (hbox, GTK_WIDGET(m_infobar_message_label), TRUE, TRUE, 0);
+
+  gtk_widget_show_all(content_area);
+
+	m_infobar_box = GTK_BOX(gtk_hbox_new(false, 6));
+	gtk_box_pack_start(m_vbox, GTK_WIDGET(m_infobar_box), false, true, 0);
+	gtk_box_pack_start(m_infobar_box, GTK_WIDGET(m_infobar), true, true, 0);
+
 	// Add search to layout
 	m_search_box = GTK_BOX(gtk_hbox_new(false, 6));
 	gtk_box_pack_start(m_vbox, GTK_WIDGET(m_search_box), false, true, 0);
@@ -213,6 +239,11 @@ WhiskerMenu::Window::Window() :
 	gtk_widget_hide(m_search_results->get_widget());
 	m_default_button->set_active(true);
 	gtk_widget_show(m_window_contents);
+
+  // detect whether we're currently in a secure workspace
+  m_wnck_screen = NULL;
+	g_signal_connect_slot(m_window, "screen-changed", &Window::on_screen_changed, this);
+	on_screen_changed(GTK_WIDGET(m_window), NULL);
 
 	// Resize to last known size
 	gtk_window_set_default_size(m_window, m_geometry.width, m_geometry.height);
@@ -565,6 +596,67 @@ void WhiskerMenu::Window::save()
 		wm_settings->menu_height = m_geometry.height;
 		wm_settings->set_modified();
 	}
+}
+
+//-----------------------------------------------------------------------------
+
+void Window::update_button_labels()
+{
+  WnckWorkspace       *active_ws;
+  gint                 active_n;
+
+  /* get the active workspace if it exists */
+  active_ws = wnck_screen_get_active_workspace (m_wnck_screen);
+  active_n = active_ws? wnck_workspace_get_number (active_ws) : -1;
+
+  if (active_n < 0 || !xfce_workspace_is_secure (active_n))
+  {
+    gtk_widget_set_visible (GTK_WIDGET(m_infobar), FALSE);
+  }
+  else
+  {
+    gchar *ws_name = xfce_workspace_get_workspace_name (active_n);
+    gchar *label = g_strdup_printf (_("<b><small>Workspace %d is a Secure Workspace.\nYour app will run inside the '%s' sandbox.</small></b>"), active_n + 1, ws_name);
+    gtk_label_set_markup (m_infobar_message_label, label);
+    g_free (label);
+    g_free (ws_name);
+
+    gtk_widget_set_visible (GTK_WIDGET(m_infobar), TRUE);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void Window::on_active_workspace_changed(WnckScreen    *,
+                                         WnckWorkspace *)
+{
+  update_button_labels();
+}
+
+//-----------------------------------------------------------------------------
+
+void Window::on_screen_changed(GtkWidget *,
+                               GdkScreen *)
+{
+  GdkScreen           *screen;
+  WnckScreen          *wnck_screen;
+
+  screen = gtk_widget_get_screen(GTK_WIDGET(m_window));
+  wnck_screen = wnck_screen_get(gdk_screen_get_number(screen));
+
+  if (m_wnck_screen != wnck_screen)
+  {
+    if (m_active_workspace_changed_id)
+    {
+      g_signal_handler_disconnect (m_wnck_screen, m_active_workspace_changed_id);
+      m_active_workspace_changed_id = 0;
+    }
+
+    m_wnck_screen = wnck_screen;
+
+    m_active_workspace_changed_id = g_signal_connect_slot(m_wnck_screen, "active-workspace-changed", &Window::on_active_workspace_changed, this);
+    on_active_workspace_changed(m_wnck_screen, NULL);
+  }
 }
 
 //-----------------------------------------------------------------------------

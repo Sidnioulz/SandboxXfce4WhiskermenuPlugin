@@ -19,6 +19,7 @@
 #define WHISKERMENU_RUN_ACTION_H
 
 #include "element.h"
+#include "window.h"
 
 #include <string>
 
@@ -28,7 +29,7 @@ namespace WhiskerMenu
 class RunAction : public Element
 {
 public:
-	RunAction();
+	RunAction(Window* window);
 
 	enum
 	{
@@ -43,6 +44,7 @@ public:
 	guint search(const Query& query);
 
 private:
+  Window* m_window;
 	std::string m_command_line;
 };
 

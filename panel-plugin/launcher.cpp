@@ -197,11 +197,18 @@ Launcher::~Launcher()
 void Launcher::run(GdkScreen* screen) const
 {
 	const gchar* string = garcon_menu_item_get_command(m_item);
+	gchar *garcon_string;
+
 	if (exo_str_is_empty(string))
 	{
 		return;
 	}
-	std::string command(string);
+
+  garcon_string = garcon_menu_item_expand_command(m_item,
+                                                  string,
+                                                  xfce_workspace_is_active_secure(screen));
+	std::string command(garcon_string);
+	g_free(garcon_string);
 
 	if (garcon_menu_item_requires_terminal(m_item))
 	{

@@ -370,7 +370,7 @@ void ConfigurationDialog::action_toggle_regex(GtkToggleButton* button)
 void ConfigurationDialog::add_action(GtkButton*)
 {
 	// Add to action list
-	SearchAction* action = new SearchAction;
+	SearchAction* action = new SearchAction(m_plugin);
 	wm_settings->search_actions.push_back(action);
 	wm_settings->set_modified();
 

@@ -20,6 +20,9 @@
 
 #include <vector>
 
+#define WNCK_I_KNOW_THIS_IS_UNSTABLE
+#include <libwnck/libwnck.h>
+
 #include <gtk/gtk.h>
 
 namespace WhiskerMenu
@@ -43,6 +46,11 @@ public:
 	GtkWidget* get_widget() const
 	{
 		return GTK_WIDGET(m_window);
+	}
+
+	GdkScreen* get_screen() const
+	{
+		return gtk_widget_get_screen(GTK_WIDGET(m_window));
 	}
 
 	GtkEntry* get_search_entry() const
@@ -89,6 +97,9 @@ private:
 	void show_favorites();
 	void show_default_page();
 	void search();
+	void update_button_labels();
+  void on_active_workspace_changed(WnckScreen *, WnckWorkspace *);
+  void on_screen_changed(GtkWidget *, GdkScreen *);
 
 private:
 	GtkWindow* m_window;
@@ -99,14 +110,21 @@ private:
 	GtkBox* m_vbox;
 	GtkBox* m_title_box;
 	GtkBox* m_commands_box;
-	GtkBox* m_search_box;
-	GtkBox* m_contents_box;
-	GtkBox* m_panels_box;
-	GtkBox* m_sidebar_box;
+	GtkBox* m_infobar_box;
+ 	GtkBox* m_search_box;
+ 	GtkBox* m_contents_box;
+ 	GtkBox* m_panels_box;
+ 	GtkBox* m_sidebar_box;
+ 
+  WnckScreen *m_wnck_screen;
+  GtkInfoBar *m_infobar;
+  GtkLabel   *m_infobar_message_label;
+  guint       m_active_workspace_changed_id;
 
 	ProfilePicture* m_profilepic;
 	GtkLabel* m_username;
 	ResizerWidget* m_resizer;
+
 
 	GtkAlignment* m_commands_align;
 	GtkWidget* m_commands_button[4];

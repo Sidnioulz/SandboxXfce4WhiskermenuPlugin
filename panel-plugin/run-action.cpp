@@ -18,15 +18,20 @@
 #include "run-action.h"
 
 #include "query.h"
+#include "launcher.h"
+#include "window.h"
+#include "applications-page.h"
 #include "settings.h"
 
+#include <garcon/garcon.h>
 #include <libxfce4ui/libxfce4ui.h>
 
 using namespace WhiskerMenu;
 
 //-----------------------------------------------------------------------------
 
-RunAction::RunAction()
+RunAction::RunAction(Window* window) :
+  m_window(window)
 {
 	set_icon("system-run");
 }
@@ -35,12 +40,63 @@ RunAction::RunAction()
 
 void RunAction::run(GdkScreen* screen) const
 {
-	GError* error = NULL;
-	if (xfce_spawn_command_line_on_screen(screen, m_command_line.c_str(), false, false, &error) == false)
+  gboolean          result   = FALSE;
+	GError*           error    = NULL;
+  std::string       app_name;
+  size_t            pos;
+  GarconMenuItem   *item     = NULL;
+  ApplicationsPage *apps     = NULL;
+  Launcher         *launcher = NULL;
+	
+  // get the app's name
+	app_name = m_command_line;
+	pos = app_name.find_first_of(' ');
+	if (pos != std::string::npos && pos > 0)
+	  app_name.erase(pos);
+  app_name += ".desktop";
+
+  // find out if it ought to be sandboxed
+  if (!m_window)
+	{
+		xfce_dialog_show_error_manual(NULL, _("Missing window"), _("Failed to execute command \"%s\"."), m_command_line.c_str());
+		return;
+	}
+
+  apps = m_window->get_applications();
+  if (!apps)
+	{
+		xfce_dialog_show_error_manual(NULL, _("Missing applications page"), _("Failed to execute command \"%s\"."), m_command_line.c_str());
+		return;
+	}
+
+  launcher = apps->get_application(app_name);
+
+  item = launcher? launcher->get_garcon_menu_item():NULL;
+  if (item && garcon_menu_item_get_sandboxed(item))
+  {
+    gchar *garcon_command = garcon_menu_item_expand_command(item,
+                                                            m_command_line.c_str(),
+                                                            xfce_workspace_is_active_secure(screen));
+	  result = xfce_spawn_command_line_on_screen(screen,
+	                                             garcon_command,
+                                               FALSE,
+                                               garcon_menu_item_supports_startup_notification (item),
+                                               &error);
+    g_free(garcon_command);
+  }
+  else
+  {
+	  result = xfce_spawn_command_line_on_screen(screen, m_command_line.c_str(), FALSE, FALSE, &error);
+  }
+
+  if (item)
+    g_object_unref(item);
+
+	if (G_UNLIKELY(!result))
 	{
 		xfce_dialog_show_error(NULL, error, _("Failed to execute command \"%s\"."), m_command_line.c_str());
 		g_error_free(error);
-	}
+	}	
 }
 
 //-----------------------------------------------------------------------------

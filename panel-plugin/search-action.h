@@ -19,6 +19,7 @@
 #define WHISKERMENU_SEARCH_ACTION_H
 
 #include "element.h"
+#include "plugin.h"
 
 #include <string>
 
@@ -28,8 +29,8 @@ namespace WhiskerMenu
 class SearchAction : public Element
 {
 public:
-	SearchAction();
-	SearchAction(const gchar* name, const gchar* pattern, const gchar* command, bool is_regex, bool show_description);
+	SearchAction(Plugin* plugin);
+	SearchAction(Plugin* plugin, const gchar* name, const gchar* pattern, const gchar* command, bool is_regex, bool show_description);
 	~SearchAction();
 
 	enum
@@ -75,6 +76,7 @@ private:
 	void update_text();
 
 private:
+  Plugin* m_plugin;
 	std::string m_name;
 	std::string m_pattern;
 	std::string m_command;

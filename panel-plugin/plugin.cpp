@@ -99,7 +99,7 @@ Plugin::Plugin(XfcePanelPlugin* plugin) :
 	m_opacity(100)
 {
 	// Load settings
-	wm_settings = new Settings;
+	wm_settings = new Settings(this);
 	wm_settings->button_title = get_button_title_default();
 	wm_settings->load(xfce_resource_lookup(XFCE_RESOURCE_CONFIG, "xfce4/whiskermenu/defaults.rc"));
 	wm_settings->load(xfce_panel_plugin_lookup_rc_file(m_plugin));
